@@ -38,3 +38,15 @@ This takes significantly longer:
 for n in [1, 10]:
     print("%s repetitions: %.3fs s" % (n, utils.time_call("quarto pandoc ../_supporting_docs/synth-benchmark-1/inputs/_size-12.qmd -L ../_supporting_docs/filters/readonlywalker.lua -M n_times=%s -f markdown -t json -o /dev/null" % n)))
 ```
+
+If we implement the filter entirely in Lua, this gets significantly faster (!):
+
+```lua
+{{< include /_supporting_docs/filters/readonlypureluawalker.lua >}}
+```
+
+```{python}
+for n in [1, 10]:
+    print("%s repetitions: %.3fs s" % (n, utils.time_call("quarto pandoc ../_supporting_docs/synth-benchmark-1/inputs/_size-12.qmd -L ../_supporting_docs/filters/readonlypureluawalker.lua -M n_times=%s -f markdown -t json -o /dev/null" % n)))
+```
+

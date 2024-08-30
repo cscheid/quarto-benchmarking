@@ -1,7 +1,7 @@
 local n
 
 function Meta(meta)
-    n = tonumber(pandoc.utils.stringify(meta.n_times)) or 1
+    n = tonumber(pandoc.utils.stringify(meta.n_times or "1")) or 1
 end
 
 function Pandoc(doc)
@@ -14,5 +14,6 @@ function Pandoc(doc)
         })
     end
     -- print(c)
+    doc.blocks = pandoc.Blocks({})
     return doc
 end
