@@ -1,0 +1,40 @@
+---
+title: Pandoc Lua filter microbenchmarks
+date: 2024-08-30
+code-fold: true
+---
+
+Here, we'll use the largest synthetic file from [the previous note](./2024-08-30.qmd), with 4096 paragraphs.
+
+## Running a no-op filter repeatedly
+
+Consider this filter:
+
+```lua
+{{< include /_supporting_docs/filters/nopwalker.lua >}}
+```
+
+We run it like so:
+
+```{python}
+import utils
+for n in [10, 100, 1000]:
+    print("%s repetitions: %.3fs s" % (n, utils.time_call("quarto pandoc ../_supporting_docs/synth-benchmark-1/inputs/_size-12.qmd -L ../_supporting_docs/filters/nopwalker.lua -M n_times=%s -f markdown -t json -o /dev/null" % n)))
+```
+
+Clearly, each repetition takes negligible time.
+
+## Running a read-only filter repeatedly
+
+On the other hand, consider this:
+
+```lua
+{{< include /_supporting_docs/filters/readonlywalker.lua >}}
+```
+
+This takes significantly longer:
+
+```{python}
+for n in [1, 10]:
+    print("%s repetitions: %.3fs s" % (n, utils.time_call("quarto pandoc ../_supporting_docs/synth-benchmark-1/inputs/_size-12.qmd -L ../_supporting_docs/filters/readonlywalker.lua -M n_times=%s -f markdown -t json -o /dev/null" % n)))
+```

@@ -1,0 +1,98 @@
+---
+title: Setting up a synthetic workload generator
+date: 2024-08-30
+code-fold: true
+tags:
+  - workload-generator
+html-table-processing: none
+---
+
+## Workload generation
+
+[`/src/synth-benchmark-1.ts`](/src/synth-benchmarch-1.ts) generates documents with a variable number of paragraphs (each containing a hard-coded version of Lorem Ipsum, ie without our shortcode).
+
+First, we generate a number of synthetic documents:
+
+```{python}
+import os
+import pathlib
+import pandas as pd
+import timeit
+import glob
+support_path = pathlib.Path("../_supporting_docs/synth-benchmark-1")
+(support_path / "inputs").mkdir(parents=True, exist_ok=True)
+(support_path / "outputs").mkdir(parents=True, exist_ok=True)
+
+for work_factor in range(7, 13):
+    # I know.
+    cmd = "quarto run ../src/synth-benchmark-1.ts %s > ../_supporting_docs/synth-benchmark-1/inputs/_size-%s.qmd" % (1 << work_factor, work_factor)
+    result = os.system(cmd)
+    if result != 0:
+        raise Exception("os.system failed: %s" % result)
+```
+
+## Benchmarks
+
+### Pandoc
+
+Then, we run Pandoc with a varying number of settings to attempt to control for different parts of Pandoc's pipeline:
+
+```{python}
+#| output: false
+
+cols = {
+    "work_factor": [],
+    "html_writer": [],
+    "markdown_reader": [],
+    "json_reader": [],
+    "json_writer": [],
+    "file_size": []
+}
+
+
+def time_call(s):
+    def call_it():
+        result = os.system(s)
+        if result != 0:
+            raise Exception("call to '%s' failed with exit code %s" % (s, result))
+    return timeit.timeit(lambda: os.system(s), number=5) / 5
+
+for f in glob.glob("../_supporting_docs/synth-benchmark-1/inputs/*.qmd"):
+    p = pathlib.Path(f)
+    json_output = p.parent.parent / "outputs" / p.name.replace(".qmd", ".json")
+    cols['work_factor'].append(int(f.split("-")[-1].split(".")[0]))
+    cols['file_size'].append(p.stat().st_size)
+    md_reader_time = time_call("quarto pandoc -f markdown -t html -L ../_supporting_docs/filters/empty.lua %s -o /dev/null" % f)
+    cols['markdown_reader'].append(md_reader_time)
+    html_total_time = time_call("quarto pandoc -f markdown -t html %s -o /dev/null" % f)
+    cols['html_writer'].append(html_total_time - md_reader_time)
+    json_writer_total = time_call("quarto pandoc -f markdown -t json %s -o %s" % (f, json_output))
+    cols['json_writer'].append(json_writer_total - md_reader_time)
+    cols['json_reader'].append(time_call("quarto pandoc -f json -t html -L ../_supporting_docs/filters/empty.lua %s -o /dev/null" % json_output))
+```
+
+```{python}
+from great_tables import GT
+df = pd.DataFrame(cols).sort_values(by='work_factor')
+(
+  GT(df)
+  .cols_hide('work_factor')
+  .fmt_bytes(columns="file_size")
+  .fmt_number(columns=['html_writer', 'markdown_reader', 'json_reader', 'json_writer'], decimals=3, use_seps=False)
+  .cols_label(
+    html_writer = "w:html (s)",
+    markdown_reader = "r:md (s)",
+    json_reader = "r:json (s)",
+    json_writer = "w:json (s)",
+    file_size = "File size"
+  )
+)
+```
+
+## Appendix
+
+Software versions:
+
+```{python}
+os.system("quarto check")
+```
