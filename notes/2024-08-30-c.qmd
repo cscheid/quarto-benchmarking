@@ -1,0 +1,6 @@
+---
+title: Benchmarking walking through JSON
+---
+
+Let's try something a bit more extreme. We first call `pandoc.write(doc, 'json')`, then parse this into pure Lua,
+then benchmark filters through the pure-Lua version.

@@ -42,8 +42,8 @@ function module.setcategory(c)
   category = c
 end
 
-function module.start(filename, ms)
-  outputfile = io.open(filename, "a")
+function module.start(filename, ms, mode)
+  outputfile = io.open(filename, mode or "a")
   if outputfile == nil then
     error("Could not open " .. filename .. " for writing")
     return

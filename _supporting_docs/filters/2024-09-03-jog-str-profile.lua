@@ -9,7 +9,7 @@ end
 
 local profiler = dofile('../src/profiler.lua')
 function Pandoc(doc)
-    profiler.start(profile_name)
+    profiler.start(profile_name, 5, "w")
     local c = 0
     for i = 1, n do
         doc.blocks = jog(doc.blocks, {

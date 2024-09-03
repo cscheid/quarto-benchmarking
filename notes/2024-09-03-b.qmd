@@ -20,6 +20,7 @@ This requires a patched version of Pandoc, linked against this [patched version 
 #| echo: false
 from utils import time_call, with_dir
 import os
+import subprocess
 
 def jog_cmd(p, filter=None, pandoc_path=None, **kwargs):
   if filter is None:
@@ -33,11 +34,13 @@ def jog_cmd(p, filter=None, pandoc_path=None, **kwargs):
   return " ".join(cmd)
 
 def time_with_jog_commit(hash, cmd, number=5):
+  branch = ""
   with with_dir("../src/jog"):
+    branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output = True).stdout.decode().strip()
     os.system("git checkout %s >/dev/null 2>/dev/null" % hash)
   result = time_call(cmd, number=number)
   with with_dir("../src/jog"):
-    os.system("git checkout main >/dev/null 2>/dev/null")
+    os.system("git checkout %s >/dev/null 2>/dev/null" % branch)
   return result
 ```
 
@@ -52,10 +55,25 @@ os.system(jog_cmd(8, pandoc_path="~/.local/bin/pandoc")) # the patched version o
 ```{python}
 #| output: asis
 hashes = [
-  "bdf5715c76fa68e5425537ad544ed1b5fb45869c",
-  "c25aa65bf5be67e8e30d47e5662434e577f8a2d3"
+  # "bdf5715c76fa68e5425537ad544ed1b5fb45869c",
+  # "c25aa65bf5be67e8e30d47e5662434e577f8a2d3",
+  # "b412d8bcd19a634c2d880109bb9876aa681d3bfd",
+  # "5500a84bb904f7feca248ef2b610d292eced00ea"
+  # "e3c22432cc9d84257bced58be90066b49d79a345",
+  # "bb465a138b453de1a2ff0c5efb26e2ce80739cf5"
+  # "0f842012f49c9103f15f9400f325ab0c252385e8",
+  "7776d06e4350f65d36622bfa4bba7d6a82dd6409",
+  "666365d4c1dd22fb7de00d59f17f13022022b380"
 ]
 
 for hash in hashes:
   print(' - `jog`, commit `%s`: %.03f' % (hash, time_with_jog_commit(hash, jog_cmd(8, filter="../_supporting_docs/filters/2024-09-03-jog-str.lua"))))
 ```
+
+The last hashes refer to commits in Carlos's fork of `jog`, so they might be merged yet.
+
+## Next steps
+
+- figure out a way to make `foo.t` faster and `foo.content` faster: collectively these account for 45% of the _total_ runtime of the benchmarking filter.
+- split `jog` into different versions: with context, read-only, etc.
+  - context management (pushing and popping the context array) accounts for 8.5% of the total running time in `jog`.
