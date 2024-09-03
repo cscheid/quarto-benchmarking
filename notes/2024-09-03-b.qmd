@@ -1,0 +1,61 @@
+---
+title: Profiling `jog`
+bibliography:
+  - 2024-09-03.bib
+date: 2024-09-03
+resources:
+  - 2024-09-03-jog.profile
+code-fold: true
+---
+
+We've cloned `jog` (@jog) into `/src`.
+
+## What we're running
+
+We jog the AST to count `Str` elements over a 4096-paragraph document, and profile it.
+
+This requires a patched version of Pandoc, linked against this [patched version of Lua](https://github.com/cscheid/lua-fast-profiler/tree/feature/fast-profiler-5.4).
+
+```{python}
+#| echo: false
+from utils import time_call, with_dir
+import os
+
+def jog_cmd(p, filter=None, pandoc_path=None, **kwargs):
+  if filter is None:
+    filter = "../_supporting_docs/filters/2024-09-03-jog-str-profile.lua"
+  pandoc_path = pandoc_path or "quarto pandoc"
+  cmd = [pandoc_path]
+  cmd.append("-f markdown -t json -o /dev/null ../_supporting_docs/synth-benchmark-1/inputs/_size-12.qmd -L %s" % filter)
+  cmd.append("-M n_times:%s" % p)
+  for (k, v) in kwargs.items():
+    cmd.append("-M %s:%s" % (k, v))
+  return " ".join(cmd)
+
+def time_with_jog_commit(hash, cmd, number=5):
+  with with_dir("../src/jog"):
+    os.system("git checkout %s >/dev/null 2>/dev/null" % hash)
+  result = time_call(cmd, number=number)
+  with with_dir("../src/jog"):
+    os.system("git checkout main >/dev/null 2>/dev/null")
+  return result
+```
+
+## Generating the profile
+
+```{python}
+os.system(jog_cmd(8, pandoc_path="~/.local/bin/pandoc")) # the patched version of Pandoc in Carlos's system
+```
+
+## Timing
+
+```{python}
+#| output: asis
+hashes = [
+  "bdf5715c76fa68e5425537ad544ed1b5fb45869c",
+  "c25aa65bf5be67e8e30d47e5662434e577f8a2d3"
+]
+
+for hash in hashes:
+  print(' - `jog`, commit `%s`: %.03f' % (hash, time_with_jog_commit(hash, jog_cmd(8, filter="../_supporting_docs/filters/2024-09-03-jog-str.lua"))))
+```

@@ -9,12 +9,15 @@ We've cloned `jog` (@jog) into `/src`.
 
 ## What we're running
 
-We run an empty walk over a 4096-paragraph document:
+We run a walk to count `Str` elements over a 4096-paragraph document, and compare against `:walk()`
 
 ```{python}
-def cmd(p):
-    return "quarto pandoc -f markdown -t json -o /dev/null ../_supporting_docs/synth-benchmark-1/inputs/_size-12.qmd -L ../_supporting_docs/filters/2024-09-03-jog.lua -M n_times:%s" % p
-print(cmd(1))
+def jog_cmd(p):
+    return "quarto pandoc -f markdown -t json -o /dev/null ../_supporting_docs/synth-benchmark-1/inputs/_size-12.qmd -L ../_supporting_docs/filters/2024-09-03-jog-str.lua -M n_times:%s" % p
+def walk_cmd(p):
+    return "quarto pandoc -f markdown -t json -o /dev/null ../_supporting_docs/synth-benchmark-1/inputs/_size-12.qmd -L ../_supporting_docs/filters/2024-09-03-walk-str.lua -M n_times:%s" % p
+print(jog_cmd(1))
+print(walk_cmd(1))
 ```
 
 ```{python}
@@ -23,7 +26,7 @@ from utils import time_call
 import pandas as pd
 
 passes = [1, 2, 4, 8]
-times = [time_call(cmd(x), number=1) for x in passes]
-
-pd.DataFrame({"passes": passes, "time": times}) 
+jog_time = [time_call(jog_cmd(x), number=1) for x in passes]
+walk_time = [time_call(walk_cmd(x), number=1) for x in passes]
+pd.DataFrame({"passes": passes, "jog_time": jog_time, "walk_time": walk_time}) 
 ```
