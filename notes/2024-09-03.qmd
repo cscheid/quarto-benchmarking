@@ -1,0 +1,29 @@
+---
+title: Benchmarking `jog`
+bibliography:
+  - 2024-09-03.bib
+date: 2024-09-03
+---
+
+We've cloned `jog` (@jog) into `/src`.
+
+## What we're running
+
+We run an empty walk over a 4096-paragraph document:
+
+```{python}
+def cmd(p):
+    return "quarto pandoc -f markdown -t json -o /dev/null ../_supporting_docs/synth-benchmark-1/inputs/_size-12.qmd -L ../_supporting_docs/filters/2024-09-03-jog.lua -M n_times:%s" % p
+print(cmd(1))
+```
+
+```{python}
+#| echo: false
+from utils import time_call
+import pandas as pd
+
+passes = [1, 2, 4, 8]
+times = [time_call(cmd(x), number=1) for x in passes]
+
+pd.DataFrame({"passes": passes, "time": times}) 
+```
